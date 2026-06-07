@@ -345,7 +345,7 @@
     <div><span>all time</span><span id="s-total">0</span></div>
     <div><span>per click</span><span id="s-cv">1</span></div>
   </div>
-  <div id="save-note">autosaves every 30s</div>
+  <div id="save-note">autosaves every 10s</div>
 </div>
 
 <div id="right">
@@ -854,7 +854,7 @@ initBuildingDom();
 updateStats();
 updateBuildingDom();
 updateUpgradeDom();
-setInterval(saveGame, 30000);
+setInterval(saveGame, 10000);
 requestAnimationFrame(loop);
 </script>
 </body>
