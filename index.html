@@ -368,9 +368,8 @@ const G = {
   sakets: 0,
   totalEarned: 0,
   totalClicks: 0,
-  clickValue: 1,
+  clickSpsPercent: 0.02,
   sps: 0,
-  _spsClickBonus: false,
 };
 
 // ── BUILDINGS ────────────────────────────────────────────────
@@ -442,80 +441,82 @@ function recalc() {
 }
 
 function effectiveClick() {
-  return G._spsClickBonus ? G.clickValue + G.sps * 0.01 : G.clickValue;
+  return 1 + G.sps * G.clickSpsPercent;
 }
 
 // ── UPGRADES ────────────────────────────────────────────────
+// u1–u10: each adds +1% of sps per click (starts at 2%, max 12%)
+// u11–u15: sps building multipliers only
 const UPGRADES = [
   {
     id:'u1', name:'opsaket', cost:15,
     desc:'clicks harder',
     purchased:false, unlocked:false,
     unlock:()=>true,
-    apply(){ G.clickValue*=2; },
+    apply(){ G.clickSpsPercent+=0.01; },
   },
   {
     id:'u2', name:'saket v2', cost:150,
     desc:'saket works overtime',
     purchased:false, unlocked:false,
     unlock:()=>B('saket').owned>=1,
-    apply(){ B('saket')._sps*=2; recalc(); },
+    apply(){ G.clickSpsPercent+=0.01; },
   },
   {
     id:'u3', name:'saket v3', cost:800,
     desc:'even harder clicks',
     purchased:false, unlocked:false,
     unlock:()=>G.totalClicks>=50,
-    apply(){ G.clickValue*=2; },
+    apply(){ G.clickSpsPercent+=0.01; },
   },
   {
     id:'u4', name:'saket v4', cost:6000,
     desc:'67 more per 67',
     purchased:false, unlocked:false,
     unlock:()=>B('s67').owned>=1,
-    apply(){ B('s67')._sps*=2; recalc(); },
+    apply(){ G.clickSpsPercent+=0.01; },
   },
   {
     id:'u5', name:'saket v5', cost:25000,
     desc:'clicks so hard',
     purchased:false, unlocked:false,
     unlock:()=>G.totalEarned>=5000,
-    apply(){ G.clickValue*=3; },
+    apply(){ G.clickSpsPercent+=0.01; },
   },
   {
     id:'u6', name:'saket v6', cost:120000,
     desc:'all those hands',
     purchased:false, unlocked:false,
     unlock:()=>B('handy').owned>=1,
-    apply(){ B('handy')._sps*=2; recalc(); },
+    apply(){ G.clickSpsPercent+=0.01; },
   },
   {
     id:'u7', name:'saket v7', cost:1200000,
     desc:'extra crispy',
     purchased:false, unlocked:false,
     unlock:()=>B('samosa').owned>=1,
-    apply(){ B('samosa')._sps*=2; recalc(); },
+    apply(){ G.clickSpsPercent+=0.01; },
   },
   {
     id:'u8', name:'saket v8', cost:4000000,
     desc:'unreasonable click damage',
     purchased:false, unlocked:false,
     unlock:()=>G.totalEarned>=500000,
-    apply(){ G.clickValue*=5; },
+    apply(){ G.clickSpsPercent+=0.01; },
   },
   {
     id:'u9', name:'saket v9', cost:20000000,
     desc:'theyre in the zone',
     purchased:false, unlocked:false,
     unlock:()=>B('arush').owned>=1,
-    apply(){ B('arush')._sps*=2; recalc(); },
+    apply(){ G.clickSpsPercent+=0.01; },
   },
   {
     id:'u10', name:'saket v10', cost:200000000,
     desc:'he transcends',
     purchased:false, unlocked:false,
     unlock:()=>B('grand').owned>=1,
-    apply(){ B('grand')._sps*=2; recalc(); },
+    apply(){ G.clickSpsPercent+=0.01; },
   },
   {
     id:'u11', name:'saket v11', cost:400000000,
@@ -533,10 +534,10 @@ const UPGRADES = [
   },
   {
     id:'u13', name:'saket v13', cost:4000000000,
-    desc:'clicks scale with production',
+    desc:'theyre cooking',
     purchased:false, unlocked:false,
-    unlock:()=>G.sps>=5000,
-    apply(){ G._spsClickBonus=true; },
+    unlock:()=>B('arush').owned>=1,
+    apply(){ B('arush')._sps*=2; B('grand')._sps*=2; recalc(); },
   },
   {
     id:'u14', name:'saket v14', cost:10000000000,
@@ -575,8 +576,7 @@ function saveGame() {
     sakets:           G.sakets,
     totalEarned:      G.totalEarned,
     totalClicks:      G.totalClicks,
-    clickValue:       G.clickValue,
-    spsClickBonus:    G._spsClickBonus,
+    clickSpsPercent:  G.clickSpsPercent,
     buildings:        BUILDINGS.map(b => ({ id:b.id, owned:b.owned, _sps:b._sps })),
     upgrades:         UPGRADES.filter(u=>u.purchased).map(u=>u.id),
     milestones:       [...reachedMilestones],
@@ -593,11 +593,10 @@ function loadGame() {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return;
     const d = JSON.parse(raw);
-    G.sakets         = d.sakets        || 0;
-    G.totalEarned    = d.totalEarned   || 0;
-    G.totalClicks    = d.totalClicks   || 0;
-    G.clickValue     = d.clickValue    || 1;
-    G._spsClickBonus = d.spsClickBonus || false;
+    G.sakets          = d.sakets          || 0;
+    G.totalEarned     = d.totalEarned     || 0;
+    G.totalClicks     = d.totalClicks     || 0;
+    G.clickSpsPercent = d.clickSpsPercent || 0.02;
     for (const bd of (d.buildings || [])) {
       const b = B(bd.id);
       if (b) { b.owned = bd.owned || 0; b._sps = bd._sps || b.baseSps; }
