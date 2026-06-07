@@ -1,0 +1,861 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Saket Clicker</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0d1117;
+      color: #e0e0e0;
+      font-family: 'Segoe UI', Georgia, serif;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* ── LEFT ── */
+    #left {
+      width: 272px;
+      min-width: 272px;
+      background: #161b22;
+      border-right: 2px solid #30363d;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 14px;
+      gap: 10px;
+    }
+
+    #title {
+      font-size: 20px;
+      font-weight: bold;
+      color: #f0a500;
+      text-align: center;
+      text-shadow: 0 0 10px rgba(240,165,0,0.35);
+      letter-spacing: 1px;
+    }
+
+    #count {
+      font-size: 30px;
+      font-weight: bold;
+      color: #fff;
+      text-align: center;
+      line-height: 1.1;
+    }
+
+    #count-label {
+      font-size: 11px;
+      color: #484f58;
+      text-align: center;
+      margin-top: -6px;
+    }
+
+    #sps {
+      font-size: 12px;
+      color: #6e7681;
+      text-align: center;
+    }
+
+    /* ── BUTTON ── */
+    #btn {
+      cursor: pointer;
+      width: 182px;
+      height: 182px;
+      border-radius: 50%;
+      background: #111;
+      border: 3px solid #f0a500;
+      flex-shrink: 0;
+      overflow: hidden;
+      transition: box-shadow 0.2s;
+    }
+
+    #btn:hover { box-shadow: 0 0 28px rgba(240,165,0,0.42); }
+
+    #btn-inner {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      overflow: hidden;
+      transition: transform 0.07s;
+    }
+
+    #btn:active #btn-inner { transform: scale(0.9); }
+
+    .btn-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      pointer-events: none;
+    }
+
+    .bicon-img {
+      width: 36px;
+      height: 36px;
+      object-fit: cover;
+      border-radius: 50%;
+      border: 1px solid #30363d;
+      display: block;
+    }
+
+    /* ── STATS ── */
+    #stats {
+      width: 100%;
+      background: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 7px;
+      padding: 9px 12px;
+      font-size: 12px;
+      color: #484f58;
+      line-height: 2.2;
+    }
+
+    #stats div { display: flex; justify-content: space-between; }
+    #stats span { color: #c9d1d9; }
+
+    #save-note {
+      font-size: 10px;
+      color: #2a3040;
+      text-align: center;
+    }
+
+    /* ── RIGHT ── */
+    #right {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    /* ── UPGRADES BAR ── */
+    #ubar {
+      background: #0d1117;
+      border-bottom: 2px solid #21262d;
+      padding: 7px 10px;
+      min-height: 52px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+
+    #up-label {
+      font-size: 10px;
+      color: #2a3040;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .chip {
+      background: #1c2128;
+      border: 1.5px solid #f0a500;
+      border-radius: 5px;
+      padding: 4px 9px;
+      cursor: pointer;
+      font-size: 11px;
+      position: relative;
+      transition: background 0.12s;
+    }
+
+    .chip:hover:not(.locked) { background: #252e3e; }
+
+    .chip.locked {
+      border-color: #21262d;
+      opacity: 0.4;
+      cursor: default;
+    }
+
+    .chip-name { color: #f0a500; font-weight: bold; }
+    .chip-cost { color: #484f58; font-size: 10px; }
+
+    .tip {
+      display: none;
+      position: absolute;
+      bottom: calc(100% + 5px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1c2128;
+      border: 1px solid #30363d;
+      border-radius: 5px;
+      padding: 5px 9px;
+      white-space: nowrap;
+      font-size: 11px;
+      color: #c9d1d9;
+      z-index: 50;
+      pointer-events: none;
+    }
+
+    .chip:hover .tip { display: block; }
+
+    /* ── STORE ── */
+    #store {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+    }
+
+    #store-hdr {
+      font-size: 10px;
+      color: #2a3040;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+      padding-bottom: 5px;
+      border-bottom: 1px solid #1c2128;
+    }
+
+    /* building rows - created once, never recreated */
+    .brow {
+      display: flex;
+      align-items: center;
+      background: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 7px;
+      padding: 9px 10px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      gap: 10px;
+      transition: border-color 0.12s, background 0.12s;
+    }
+
+    .brow:hover:not(.locked) {
+      border-color: #f0a500;
+      background: #1a2030;
+    }
+
+    .brow.locked {
+      opacity: 0.35;
+      cursor: default;
+    }
+
+    .brow.locked .bicon { filter: grayscale(1); }
+
+    .bicon { font-size: 26px; width: 34px; text-align: center; flex-shrink: 0; }
+
+    .binfo { flex: 1; min-width: 0; }
+
+    .bname {
+      font-size: 14px;
+      font-weight: bold;
+      color: #c9d1d9;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .bcost { font-size: 12px; color: #f0a500; }
+    .bdesc { font-size: 10px; color: #3c434d; margin-top: 1px; }
+    .bsps  { font-size: 10px; color: #2ea043; margin-top: 1px; }
+
+    .bowned {
+      background: #1c2128;
+      color: #f0a500;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 5px;
+      min-width: 38px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      border: 1px solid #21262d;
+    }
+
+    /* ── PARTICLE ── */
+    .particle {
+      position: fixed;
+      font-size: 15px;
+      font-weight: bold;
+      color: #f0a500;
+      pointer-events: none;
+      z-index: 9999;
+      animation: rise 0.85s ease-out forwards;
+    }
+
+    @keyframes rise {
+      0%   { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-60px); }
+    }
+
+    /* ── BANNER ── */
+    #banner {
+      position: fixed;
+      top: -68px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, #f0a500, #c57a00);
+      color: #000;
+      padding: 10px 24px;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 14px;
+      z-index: 9998;
+      box-shadow: 0 4px 18px rgba(240,165,0,0.4);
+      transition: top 0.35s cubic-bezier(.22,.68,0,1.2);
+      white-space: nowrap;
+    }
+
+    #banner.show { top: 15px; }
+
+    /* ── SAVE FLASH ── */
+    #save-flash {
+      position: fixed;
+      bottom: 10px;
+      right: 12px;
+      font-size: 10px;
+      color: #2ea043;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+
+    #save-flash.show { opacity: 1; }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #0d1117; }
+    ::-webkit-scrollbar-thumb { background: #21262d; border-radius: 2px; }
+    ::-webkit-scrollbar-thumb:hover { background: #f0a500; }
+  </style>
+</head>
+<body>
+
+<div id="left">
+  <div id="title">Saket Clicker</div>
+  <div id="count">0</div>
+  <div id="count-label">sakets</div>
+  <div id="sps">0.0 / sec</div>
+
+  <div id="btn">
+    <div id="btn-inner">
+      <img class="btn-img" src="lip_bite.png" alt="saket">
+    </div>
+  </div>
+
+  <div id="stats">
+    <div><span>clicks</span><span id="s-clicks">0</span></div>
+    <div><span>all time</span><span id="s-total">0</span></div>
+    <div><span>per click</span><span id="s-cv">1</span></div>
+  </div>
+  <div id="save-note">autosaves every 30s</div>
+</div>
+
+<div id="right">
+  <div id="ubar">
+    <div id="up-label">upgrades</div>
+    <div id="up-chips"></div>
+  </div>
+  <div id="store">
+    <div id="store-hdr">buildings</div>
+    <div id="blist"></div>
+  </div>
+</div>
+
+<div id="banner"></div>
+<div id="save-flash">saved</div>
+
+<script>
+// ── STATE ────────────────────────────────────────────────────
+const G = {
+  sakets: 0,
+  totalEarned: 0,
+  totalClicks: 0,
+  clickValue: 1,
+  sps: 0,
+  _spsClickBonus: false,
+};
+
+// ── BUILDINGS ────────────────────────────────────────────────
+const BUILDINGS = [
+  {
+    id:'saket', name:'Saket', icon:'👤', img:'party_hat.png',
+    baseCost:1, baseSps:0.1,
+    desc:'just saket',
+    owned:0, _sps:0.1, achieve:'hired',
+  },
+  {
+    id:'s67', name:'67 Saket', icon:'👥', img:'party_hat2.png',
+    baseCost:67, baseSps:0.5,
+    desc:'why 67. nobody knows',
+    owned:0, _sps:0.5, achieve:'sixty seven. ok.',
+  },
+  {
+    id:'handy', name:'100 Handed Saket', icon:'🙌', img:'outdoor.png',
+    baseCost:800, baseSps:4,
+    desc:'saket is very handy',
+    owned:0, _sps:4, achieve:'handyman',
+  },
+  {
+    id:'samosa', name:'Samosa Saket', icon:'🥟', img:'biraj.png',
+    baseCost:12000, baseSps:25,
+    desc:'Crispy. Efficient. Slightly spicy.',
+    owned:0, _sps:25, achieve:'samosa szn',
+  },
+  {
+    id:'arush', name:'Saket Arush Situationship', icon:'💻',
+    baseCost:150000, baseSps:160,
+    desc:'is saket cheating on levin',
+    owned:0, _sps:160, achieve:'duo queue',
+  },
+  {
+    id:'grand', name:'Grand Saket', icon:'👑', img:'portrait.png',
+    baseCost:1500000, baseSps:900,
+    desc:'hes just built different',
+    owned:0, _sps:900, achieve:'the grand arrival',
+  },
+  {
+    id:'biraj', name:'biraj slave', icon:'🫡', img:'headshot.png',
+    baseCost:25000000, baseSps:5000,
+    desc:'doing whatever saket says',
+    owned:0, _sps:5000, achieve:'unpaid intern',
+  },
+  {
+    id:'levin', name:'saket and his bf levin', icon:'🫂',
+    baseCost:400000000, baseSps:30000,
+    desc:'theyre on facetime rn',
+    owned:0, _sps:30000, achieve:'relationship buff',
+  },
+  {
+    id:'peacock', name:'saket chasing peacock in india except it runs away', icon:'🦚',
+    baseCost:6000000000, baseSps:170000,
+    desc:'the peacock said no',
+    owned:0, _sps:170000, achieve:'it ran',
+  },
+];
+
+const B = id => BUILDINGS.find(b => b.id === id);
+
+function buildingCost(b) {
+  return Math.ceil(b.baseCost * Math.pow(1.15, b.owned));
+}
+
+function recalc() {
+  G.sps = BUILDINGS.reduce((s, b) => s + b._sps * b.owned, 0);
+}
+
+function effectiveClick() {
+  return G._spsClickBonus ? G.clickValue + G.sps * 0.01 : G.clickValue;
+}
+
+// ── UPGRADES ────────────────────────────────────────────────
+const UPGRADES = [
+  {
+    id:'u1', name:'opsaket', cost:15,
+    desc:'clicks harder',
+    purchased:false, unlocked:false,
+    unlock:()=>true,
+    apply(){ G.clickValue*=2; },
+  },
+  {
+    id:'u2', name:'saket v2', cost:150,
+    desc:'saket works overtime',
+    purchased:false, unlocked:false,
+    unlock:()=>B('saket').owned>=1,
+    apply(){ B('saket')._sps*=2; recalc(); },
+  },
+  {
+    id:'u3', name:'saket v3', cost:800,
+    desc:'even harder clicks',
+    purchased:false, unlocked:false,
+    unlock:()=>G.totalClicks>=50,
+    apply(){ G.clickValue*=2; },
+  },
+  {
+    id:'u4', name:'saket v4', cost:6000,
+    desc:'67 more per 67',
+    purchased:false, unlocked:false,
+    unlock:()=>B('s67').owned>=1,
+    apply(){ B('s67')._sps*=2; recalc(); },
+  },
+  {
+    id:'u5', name:'saket v5', cost:25000,
+    desc:'clicks so hard',
+    purchased:false, unlocked:false,
+    unlock:()=>G.totalEarned>=5000,
+    apply(){ G.clickValue*=3; },
+  },
+  {
+    id:'u6', name:'saket v6', cost:120000,
+    desc:'all those hands',
+    purchased:false, unlocked:false,
+    unlock:()=>B('handy').owned>=1,
+    apply(){ B('handy')._sps*=2; recalc(); },
+  },
+  {
+    id:'u7', name:'saket v7', cost:1200000,
+    desc:'extra crispy',
+    purchased:false, unlocked:false,
+    unlock:()=>B('samosa').owned>=1,
+    apply(){ B('samosa')._sps*=2; recalc(); },
+  },
+  {
+    id:'u8', name:'saket v8', cost:4000000,
+    desc:'unreasonable click damage',
+    purchased:false, unlocked:false,
+    unlock:()=>G.totalEarned>=500000,
+    apply(){ G.clickValue*=5; },
+  },
+  {
+    id:'u9', name:'saket v9', cost:20000000,
+    desc:'theyre in the zone',
+    purchased:false, unlocked:false,
+    unlock:()=>B('arush').owned>=1,
+    apply(){ B('arush')._sps*=2; recalc(); },
+  },
+  {
+    id:'u10', name:'saket v10', cost:200000000,
+    desc:'he transcends',
+    purchased:false, unlocked:false,
+    unlock:()=>B('grand').owned>=1,
+    apply(){ B('grand')._sps*=2; recalc(); },
+  },
+  {
+    id:'u11', name:'saket v11', cost:400000000,
+    desc:'biraj puts in overtime',
+    purchased:false, unlocked:false,
+    unlock:()=>B('biraj').owned>=1,
+    apply(){ B('biraj')._sps*=2; recalc(); },
+  },
+  {
+    id:'u12', name:'saket v12', cost:1500000000,
+    desc:'everyones doing more',
+    purchased:false, unlocked:false,
+    unlock:()=>G.totalEarned>=100000000,
+    apply(){ BUILDINGS.forEach(b=>{ b._sps*=2; }); recalc(); },
+  },
+  {
+    id:'u13', name:'saket v13', cost:4000000000,
+    desc:'clicks scale with production',
+    purchased:false, unlocked:false,
+    unlock:()=>G.sps>=5000,
+    apply(){ G._spsClickBonus=true; },
+  },
+  {
+    id:'u14', name:'saket v14', cost:10000000000,
+    desc:'relationship buff',
+    purchased:false, unlocked:false,
+    unlock:()=>B('levin').owned>=1,
+    apply(){ B('levin')._sps*=2; recalc(); },
+  },
+  {
+    id:'u15', name:'saket v15', cost:100000000000,
+    desc:'the peacock got tired',
+    purchased:false, unlocked:false,
+    unlock:()=>B('peacock').owned>=1,
+    apply(){ B('peacock')._sps*=2; recalc(); },
+  },
+];
+
+// ── MILESTONES ───────────────────────────────────────────────
+const MILESTONES = [
+  { at:1,           msg:'it begins' },
+  { at:100,         msg:'saket is pleased' },
+  { at:1000,        msg:'the legend grows' },
+  { at:10000,       msg:'grand saket hours' },
+  { at:100000,      msg:'almost there' },
+  { at:1000000,     msg:'ascended' },
+  { at:1000000000,  msg:'hes everywhere now' },
+];
+const reachedMilestones = new Set();
+const achievedBuildings = new Set();
+
+// ── SAVE / LOAD ──────────────────────────────────────────────
+const SAVE_KEY = 'saket_clicker_v1';
+
+function saveGame() {
+  const data = {
+    sakets:           G.sakets,
+    totalEarned:      G.totalEarned,
+    totalClicks:      G.totalClicks,
+    clickValue:       G.clickValue,
+    spsClickBonus:    G._spsClickBonus,
+    buildings:        BUILDINGS.map(b => ({ id:b.id, owned:b.owned, _sps:b._sps })),
+    upgrades:         UPGRADES.filter(u=>u.purchased).map(u=>u.id),
+    milestones:       [...reachedMilestones],
+    achievedBuildings:[...achievedBuildings],
+  };
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    flashSave();
+  } catch(e) {}
+}
+
+function loadGame() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    G.sakets         = d.sakets        || 0;
+    G.totalEarned    = d.totalEarned   || 0;
+    G.totalClicks    = d.totalClicks   || 0;
+    G.clickValue     = d.clickValue    || 1;
+    G._spsClickBonus = d.spsClickBonus || false;
+    for (const bd of (d.buildings || [])) {
+      const b = B(bd.id);
+      if (b) { b.owned = bd.owned || 0; b._sps = bd._sps || b.baseSps; }
+    }
+    for (const uid of (d.upgrades || [])) {
+      const u = UPGRADES.find(u=>u.id===uid);
+      if (u) { u.purchased = true; u.unlocked = true; }
+    }
+    for (const m of (d.milestones        || [])) reachedMilestones.add(m);
+    for (const a of (d.achievedBuildings || [])) achievedBuildings.add(a);
+    recalc();
+  } catch(e) {}
+}
+
+let saveFlashTimer;
+function flashSave() {
+  const el = document.getElementById('save-flash');
+  el.classList.add('show');
+  clearTimeout(saveFlashTimer);
+  saveFlashTimer = setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+// ── FORMAT ───────────────────────────────────────────────────
+function fmt(n) {
+  n = Math.floor(n);
+  if (n >= 1e15) return (n/1e15).toFixed(2)+' quad';
+  if (n >= 1e12) return (n/1e12).toFixed(2)+' tril';
+  if (n >= 1e9)  return (n/1e9).toFixed(2)+' bil';
+  if (n >= 1e6)  return (n/1e6).toFixed(2)+' mil';
+  if (n >= 1e3)  return (n/1e3).toFixed(1)+'k';
+  return n.toString();
+}
+
+function fmtF(n) {
+  if (n >= 1e9)  return (n/1e9).toFixed(1)+' bil';
+  if (n >= 1e6)  return (n/1e6).toFixed(1)+' mil';
+  if (n >= 1e3)  return (n/1e3).toFixed(1)+'k';
+  if (n >= 10)   return n.toFixed(1);
+  return n.toFixed(2);
+}
+
+// ── BUILDING DOM — built once, updated in-place ────────────
+const bDom = {};
+
+function initBuildingDom() {
+  const list = document.getElementById('blist');
+  for (const b of BUILDINGS) {
+    const row = document.createElement('div');
+    row.className = 'brow locked';
+
+    const iconEl = document.createElement('div');
+    iconEl.className = 'bicon';
+    if (b.img) {
+      const im = document.createElement('img');
+      im.src = b.img;
+      im.className = 'bicon-img';
+      iconEl.appendChild(im);
+    } else {
+      iconEl.textContent = b.icon;
+    }
+
+    const info = document.createElement('div');
+    info.className = 'binfo';
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'bname';
+    nameEl.textContent = b.name;
+    nameEl.title = b.name;
+
+    const costEl = document.createElement('div');
+    costEl.className = 'bcost';
+
+    const descEl = document.createElement('div');
+    descEl.className = 'bdesc';
+    descEl.textContent = b.desc;
+
+    const spsEl = document.createElement('div');
+    spsEl.className = 'bsps';
+
+    info.append(nameEl, costEl, descEl, spsEl);
+
+    const ownEl = document.createElement('div');
+    ownEl.className = 'bowned';
+    ownEl.textContent = '0';
+
+    row.append(iconEl, info, ownEl);
+
+    row.addEventListener('click', () => {
+      if (!row.classList.contains('locked')) buyBuilding(b);
+    });
+
+    list.appendChild(row);
+    bDom[b.id] = { row, costEl, ownEl, spsEl };
+  }
+}
+
+function updateBuildingDom() {
+  for (const b of BUILDINGS) {
+    const { row, costEl, ownEl, spsEl } = bDom[b.id];
+    const cost = buildingCost(b);
+    row.classList.toggle('locked', G.sakets < cost);
+    costEl.textContent = fmt(cost) + ' sakets';
+    ownEl.textContent  = b.owned;
+    spsEl.textContent  = b.owned > 0
+      ? `+${fmtF(b._sps)}/s · ${fmtF(b._sps * b.owned)}/s total`
+      : `+${fmtF(b._sps)}/s each`;
+  }
+}
+
+// ── UPGRADE DOM — rebuilt only when visible set changes ──────
+let upSig = '';
+
+function updateUpgradeDom() {
+  const visible = UPGRADES.filter(u => !u.purchased && (u.unlocked || u.unlock()));
+  visible.forEach(u => u.unlocked = true);
+
+  const sig = visible.map(u => u.id + (G.sakets >= u.cost ? '1' : '0')).join('|');
+  if (sig === upSig) return;
+  upSig = sig;
+
+  const container = document.getElementById('up-chips');
+  container.innerHTML = '';
+
+  if (visible.length === 0) {
+    container.innerHTML = '<span style="color:#2a3040;font-size:11px;">none yet</span>';
+    return;
+  }
+
+  for (const u of visible) {
+    const canAfford = G.sakets >= u.cost;
+    const chip = document.createElement('div');
+    chip.className = 'chip' + (canAfford ? '' : ' locked');
+    chip.innerHTML = `
+      <div class="chip-name">${u.name}</div>
+      <div class="chip-cost">${fmt(u.cost)} sakets</div>
+      <div class="tip">${u.desc}</div>
+    `;
+    if (canAfford) chip.addEventListener('click', () => buyUpgrade(u));
+    container.appendChild(chip);
+  }
+}
+
+// ── STATS ────────────────────────────────────────────────────
+function updateStats() {
+  document.getElementById('count').textContent     = fmt(G.sakets);
+  document.getElementById('sps').textContent       = fmtF(G.sps) + ' / sec';
+  document.getElementById('s-clicks').textContent  = fmt(G.totalClicks);
+  document.getElementById('s-total').textContent   = fmt(G.totalEarned);
+  document.getElementById('s-cv').textContent      = fmtF(effectiveClick());
+}
+
+// ── ACTIONS ──────────────────────────────────────────────────
+function buyBuilding(b) {
+  const cost = buildingCost(b);
+  if (G.sakets < cost) return;
+  G.sakets -= cost;
+  const first = b.owned === 0;
+  b.owned++;
+  recalc();
+  if (first) {
+    achievedBuildings.add(b.id);
+    showBanner(b.achieve);
+  }
+  upSig = '';
+  saveGame();
+}
+
+function buyUpgrade(u) {
+  if (u.purchased || G.sakets < u.cost) return;
+  G.sakets -= u.cost;
+  u.purchased = true;
+  u.apply();
+  upSig = '';
+  saveGame();
+}
+
+// ── BANNER ───────────────────────────────────────────────────
+let bannerQ = [];
+let bannerBusy = false;
+
+function showBanner(msg) {
+  bannerQ.push(msg);
+  if (!bannerBusy) nextBanner();
+}
+
+function nextBanner() {
+  if (!bannerQ.length) { bannerBusy = false; return; }
+  bannerBusy = true;
+  const el = document.getElementById('banner');
+  el.textContent = bannerQ.shift();
+  el.classList.add('show');
+  setTimeout(() => {
+    el.classList.remove('show');
+    setTimeout(nextBanner, 420);
+  }, 2700);
+}
+
+// ── MILESTONES ───────────────────────────────────────────────
+function checkMilestones() {
+  for (const m of MILESTONES) {
+    if (!reachedMilestones.has(m.at) && G.totalEarned >= m.at) {
+      reachedMilestones.add(m.at);
+      showBanner(m.msg);
+    }
+  }
+}
+
+// ── CLICK HANDLER ────────────────────────────────────────────
+document.getElementById('btn').addEventListener('click', e => {
+  const val = effectiveClick();
+  G.sakets      += val;
+  G.totalEarned += val;
+  G.totalClicks++;
+
+  const p = document.createElement('div');
+  p.className = 'particle';
+  p.textContent = '+' + fmtF(val);
+  p.style.left = (e.clientX - 16) + 'px';
+  p.style.top  = (e.clientY - 16) + 'px';
+  document.body.appendChild(p);
+  setTimeout(() => p.remove(), 900);
+
+  checkMilestones();
+});
+
+// ── GAME LOOP ────────────────────────────────────────────────
+let lastTick   = performance.now();
+let lastRender = 0;
+
+function loop(now) {
+  const dt = Math.min((now - lastTick) / 1000, 0.5);
+  lastTick = now;
+
+  if (G.sps > 0) {
+    const earned = G.sps * dt;
+    G.sakets      += earned;
+    G.totalEarned += earned;
+    checkMilestones();
+  }
+
+  if (now - lastRender >= 100) {
+    lastRender = now;
+    updateStats();
+    updateBuildingDom();
+    updateUpgradeDom();
+  }
+
+  requestAnimationFrame(loop);
+}
+
+// ── INIT ─────────────────────────────────────────────────────
+loadGame();
+initBuildingDom();
+updateStats();
+updateBuildingDom();
+updateUpgradeDom();
+setInterval(saveGame, 30000);
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
