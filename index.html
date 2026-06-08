@@ -696,6 +696,13 @@ function initBuildingDom() {
   }
 }
 
+function fmtEff(sps, cost) {
+  const e = sps / cost;
+  if (e >= 1)    return fmtF(e)          + '/s per saket';
+  if (e >= 0.01) return e.toFixed(4)     + '/s per saket';
+  return             e.toExponential(2)  + '/s per saket';
+}
+
 function updateBuildingDom() {
   for (const b of BUILDINGS) {
     const { row, costEl, ownEl, spsEl } = bDom[b.id];
@@ -704,8 +711,8 @@ function updateBuildingDom() {
     costEl.textContent = fmt(cost) + ' sakets';
     ownEl.textContent  = b.owned;
     spsEl.textContent  = b.owned > 0
-      ? `+${fmtF(b._sps)}/s · ${fmtF(b._sps * b.owned)}/s total`
-      : `+${fmtF(b._sps)}/s each`;
+      ? `+${fmtF(b._sps)}/s · ${fmtF(b._sps * b.owned)}/s total · ${fmtEff(b._sps, cost)}`
+      : `+${fmtF(b._sps)}/s each · ${fmtEff(b._sps, cost)}`;
   }
 }
 
