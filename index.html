@@ -595,17 +595,18 @@ function loadGame() {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return;
     const d = JSON.parse(raw);
-    G.sakets          = d.sakets          || 0;
-    G.totalEarned     = d.totalEarned     || 0;
-    G.totalClicks     = d.totalClicks     || 0;
-    G.clickSpsPercent = d.clickSpsPercent || 0.02;
+    G.sakets      = d.sakets      || 0;
+    G.totalEarned = d.totalEarned || 0;
+    G.totalClicks = d.totalClicks || 0;
+    // Reset to base values and recalculate from scratch so baseSps changes take effect
+    G.clickSpsPercent = 0.02;
     for (const bd of (d.buildings || [])) {
       const b = B(bd.id);
-      if (b) { b.owned = bd.owned || 0; b._sps = bd._sps || b.baseSps; }
+      if (b) { b.owned = bd.owned || 0; b._sps = b.baseSps; }
     }
     for (const uid of (d.upgrades || [])) {
-      const u = UPGRADES.find(u=>u.id===uid);
-      if (u) { u.purchased = true; u.unlocked = true; }
+      const u = UPGRADES.find(u => u.id === uid);
+      if (u) { u.purchased = true; u.unlocked = true; u.apply(); }
     }
     for (const m of (d.milestones        || [])) reachedMilestones.add(m);
     for (const a of (d.achievedBuildings || [])) achievedBuildings.add(a);
